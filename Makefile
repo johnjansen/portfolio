@@ -6,11 +6,14 @@
 .DEFAULT_GOAL := run
 
 # Configuration
-PYTHON = python
+PYTHON = python3
 VENV = venv
 SRC_DIR = src
 CONFIG_DIR = config/development
 PYTEST_FLAGS = -v
+VENV_BIN = $(VENV)/bin
+VENV_PYTHON = $(VENV_BIN)/python
+VENV_PIP = $(VENV_BIN)/pip
 
 # Environment setup
 export PYTHONPATH := .:$(PYTHONPATH)  # Changed to include current directory
@@ -34,6 +37,7 @@ clean:
 	rm -rf build/
 	rm -rf dist/
 	rm -rf *.egg-info
+	rm -rf $(VENV)
 	find . -type d -name __pycache__ -exec rm -rf {} +
 
 run: install
@@ -44,11 +48,12 @@ run: install
 	uvicorn catwalk.main:app --reload --host 0.0.0.0 --port 8000 --log-level info
 
 venv:
-	$(PYTHON) -m venv $(VENV)
+	test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	$(VENV_PYTHON) -m pip install --upgrade pip
 	@echo "Virtual environment created. Activate with: source $(VENV)/bin/activate"
 
-setup: venv
-	. $(VENV)/bin/activate && pip install -r requirements.txt
+setup: clean venv
+	$(VENV_PIP) install -r requirements.txt
 	@echo "Development environment setup complete"
 
 # Helper targets for development

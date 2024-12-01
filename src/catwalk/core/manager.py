@@ -1,11 +1,11 @@
 # src/catwalk/core/manager.py
-from typing import Optional, Dict, Any, NamedTuple
+from typing import Optional, Dict, Any, NamedTuple, Set
 from datetime import datetime
 import os
 import re
 import yaml
 import logging
-from .cache import LRUCache  # Make sure this import is here
+from .cache import LRUCache
 from ..models.loader import PyTorchLoader, TensorFlowLoader
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,9 @@ class ModelManager:
         """Initialize the model manager with configuration."""
         logger.info(f"Initializing ModelManager with config from: {config_path}")
 
+        # Reset state
+        self._active_models = set()
+
         # Store the config directory for relative paths
         self.config_dir = os.path.dirname(os.path.abspath(config_path))
         self.config = self._load_config(config_path)
@@ -41,7 +44,8 @@ class ModelManager:
         soft_limit_bytes = self._parse_size(soft_limit)
 
         logger.info(
-            f"Initializing cache with max_size={max_size_bytes:,} bytes, soft_limit={soft_limit_bytes:,} bytes"
+            f"Initializing cache with max_size={max_size_bytes:,} bytes, "
+            f"soft_limit={soft_limit_bytes:,} bytes"
         )
 
         # Create the cache instance
@@ -56,9 +60,10 @@ class ModelManager:
             'tensorflow': TensorFlowLoader()
         }
 
-        # Initialize model storage
+        # Initialize model storage and tracking
         self.models: Dict[str, Any] = {}
         self.model_info: Dict[str, ModelInfo] = {}
+        self._active_models: Set[str] = set()
 
         logger.info(f"Initialized loaders for: {', '.join(self.loaders.keys())}")
 
@@ -97,8 +102,10 @@ class ModelManager:
             memory_usage = loader.get_memory_usage(model)
             logger.info(f"Model {model_id} loaded, using {memory_usage:,} bytes")
 
-            # Store in cache
+            # Store in cache and track as active
             self.cache.put(model_id, model, memory_usage)
+            self._active_models.add(model_id)
+            logger.info(f"Model {model_id} added to active models. Total active: {len(self._active_models)}")
 
             return model
 
@@ -113,6 +120,10 @@ class ModelManager:
         if model is None:
             logger.info(f"Model {model_id} not in cache, loading...")
             model = await self._load_model(model_id)
+        elif model_id not in self._active_models:
+            # Model was in cache but not marked as active
+            self._active_models.add(model_id)
+            logger.info(f"Model {model_id} marked as active. Total active: {len(self._active_models)}")
         return model
 
     async def predict(
@@ -222,3 +233,32 @@ class ModelManager:
         except Exception as e:
             logger.error(f"Failed to get model info for {model_id}: {str(e)}")
             return None
+
+    @property
+    def active_model_count(self) -> int:
+        """Get count of currently active models."""
+        return len(self._active_models)
+
+    def remove_model(self, model_id: str) -> None:
+        """Remove a model from active tracking and cache."""
+        if model_id in self._active_models:
+            self._active_models.remove(model_id)
+            self.cache.remove(model_id)
+            logger.info(f"Model {model_id} removed from active models. Total active: {len(self._active_models)}")
+
+
+    def reset(self):
+        """Reset the manager state - useful for testing"""
+        logger.info("Resetting ModelManager state")
+        for model_id in list(self._active_models):
+            self.remove_model(model_id)
+        self.cache.clear()
+        self._active_models.clear()
+
+    def cleanup(self):
+        """Clean up resources and reset state"""
+        self._active_models.clear()
+        self.cache.clear()
+        self.models.clear()
+        self.model_info.clear()
+        logger.info("ModelManager cleaned up")

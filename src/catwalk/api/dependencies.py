@@ -3,8 +3,12 @@ from typing import Annotated, Optional
 from catwalk.core.manager import ModelManager
 from catwalk.utils.metrics import MetricsCollector
 import os
+import logging
 
 from fastapi import Depends
+
+logger = logging.getLogger(__name__)
+
 
 # Singleton instances
 _model_manager: Optional[ModelManager] = None
@@ -16,11 +20,24 @@ def get_config_path() -> str:
     return os.getenv('CATWALK_CONFIG_PATH', 'config/development/config.yaml')
 
 
+def reset_model_manager():
+    """Reset the global model manager instance"""
+    global _model_manager
+    if _model_manager is not None:
+        # Clean up existing manager
+        for model_id in list(_model_manager._active_models):
+            _model_manager.remove_model(model_id)
+        _model_manager.cache.clear()
+    _model_manager = None
+    logger.info("Reset global ModelManager instance")
+
 def get_model_manager() -> ModelManager:
     """Dependency provider for ModelManager"""
     global _model_manager
     if _model_manager is None:
-        _model_manager = ModelManager(get_config_path())
+        config_path = os.getenv('CATWALK_CONFIG_PATH', 'config/development/config.yaml')
+        logger.info(f"Creating new ModelManager with config: {config_path}")
+        _model_manager = ModelManager(config_path)
     return _model_manager
 
 

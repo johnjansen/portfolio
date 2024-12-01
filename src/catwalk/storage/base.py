@@ -1,7 +1,7 @@
 # src/catwalk/storage/base.py
 from abc import ABC, abstractmethod
 from typing import BinaryIO, AsyncIterator
-from pathlib import Path
+
 
 class ModelStorage(ABC):
     """Abstract interface for model storage backends"""

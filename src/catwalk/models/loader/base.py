@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ModelLoader(ABC):
     @abstractmethod
     async def load(self, path: str) -> Any:

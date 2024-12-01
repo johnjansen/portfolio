@@ -2,6 +2,7 @@
 from prometheus_client import Counter, Histogram, Gauge
 import time
 
+
 class ModelMetrics:
     def __init__(self):
         self.inference_latency = Histogram(
