@@ -1,7 +1,6 @@
 # src/catwalk/core/tasks.py
-from fastapi import BackgroundTasks
 import asyncio
-import logging
+
 
 class BackgroundModelManager:
     def __init__(self, model_manager):

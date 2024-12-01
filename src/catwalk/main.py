@@ -17,15 +17,18 @@ app = FastAPI(
 
 app.include_router(api_router, prefix="/v1")
 
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
     logging.info("Catwalk starting up...")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
     logging.info("Catwalk shutting down...")
+
 
 if __name__ == "__main__":
     import uvicorn

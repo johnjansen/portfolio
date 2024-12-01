@@ -5,6 +5,7 @@ from .base import ModelLoader
 
 logger = logging.getLogger(__name__)
 
+
 class TensorFlowLoader(ModelLoader):
     def __init__(self):
         try:
@@ -17,7 +18,12 @@ class TensorFlowLoader(ModelLoader):
     async def load(self, path: str) -> Any:
         if self.tf is None:
             return None
-        return self.tf.saved_model.load(path)
+            try:
+                import tensorflow.saved_model as saved_model
+                return saved_model.load(path)
+            except ImportError:
+                logger.error("Could not import tensorflow.saved_model")
+                return None
 
     def get_memory_usage(self, model: Any) -> int:
         if self.tf is None:

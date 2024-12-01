@@ -7,6 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class SimpleModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -14,6 +15,7 @@ class SimpleModel(nn.Module):
 
     def forward(self, x):
         return self.linear(x)
+
 
 def create_and_save_model():
     # Get absolute path to project root
@@ -41,6 +43,7 @@ def create_and_save_model():
     with torch.no_grad():
         output = loaded_model(test_input)
     logger.info(f"Test prediction with input {test_input}: {output.item()}")
+
 
 if __name__ == "__main__":
     create_and_save_model()

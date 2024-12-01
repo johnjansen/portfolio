@@ -6,7 +6,7 @@ import re
 import yaml
 import logging
 from .cache import LRUCache  # Make sure this import is here
-from ..models.loader import ModelLoader, PyTorchLoader, TensorFlowLoader, get_loader
+from ..models.loader import PyTorchLoader, TensorFlowLoader
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,7 @@ class ModelInfo(NamedTuple):
     output_schema: Dict[str, Any]
     memory_usage: int
     last_used: Optional[datetime]
+
 
 class ModelManager:
     def __init__(self, config_path: str):
@@ -39,10 +40,12 @@ class ModelManager:
         logger.debug(f"Parsing soft limit: {soft_limit}")
         soft_limit_bytes = self._parse_size(soft_limit)
 
-        logger.info(f"Initializing cache with max_size={max_size_bytes:,} bytes, soft_limit={soft_limit_bytes:,} bytes")
+        logger.info(
+            f"Initializing cache with max_size={max_size_bytes:,} bytes, soft_limit={soft_limit_bytes:,} bytes"
+        )
 
         # Create the cache instance
-        self.cache = LRUCache(
+        self.cache: LRUCache = LRUCache(
             max_size_bytes=max_size_bytes,
             soft_limit_bytes=soft_limit_bytes
         )
@@ -54,8 +57,8 @@ class ModelManager:
         }
 
         # Initialize model storage
-        self.models = {}
-        self.model_info = {}
+        self.models: Dict[str, Any] = {}
+        self.model_info: Dict[str, ModelInfo] = {}
 
         logger.info(f"Initialized loaders for: {', '.join(self.loaders.keys())}")
 
@@ -112,9 +115,12 @@ class ModelManager:
             model = await self._load_model(model_id)
         return model
 
-
-
-    async def predict(self, model_id: str, inputs: Dict[str, Any], parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def predict(
+        self,
+        model_id: str,
+        inputs: Dict[str, Any],
+        parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Perform model inference."""
         model = await self.get_model(model_id)
         if model is None:
@@ -166,3 +172,53 @@ class ModelManager:
         except Exception as e:
             logger.error(f"Failed to load config from {config_path}: {str(e)}")
             raise
+
+    async def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
+        """
+        Retrieve metadata information for a specific model.
+
+        Args:
+            model_id (str): The unique identifier for the model
+
+        Returns:
+            Optional[ModelInfo]: Model metadata if found, None otherwise
+
+        Raises:
+            ValueError: If the model_id is invalid or not found in configuration
+        """
+        logger.debug(f"Getting model info for: {model_id}")
+
+        # Check if model exists in configuration
+        if model_id not in self.config['models']:
+            logger.warning(f"Model {model_id} not found in configuration")
+            return None
+
+        model_config = self.config['models'][model_id]
+
+        try:
+            # Get the model to ensure memory usage is accurate
+            model = await self.get_model(model_id)
+            if model is None:
+                return None
+
+            # Get the appropriate loader
+            model_type = model_config['type'].lower()
+            loader = self.loaders.get(model_type)
+
+            if loader is None:
+                logger.error(f"No loader available for model type: {model_type}")
+                return None
+
+            # Gather model information
+            return ModelInfo(
+                version=model_config.get('version', '1.0.0'),
+                format=model_type,
+                input_schema=model_config.get('input_schema', {}),
+                output_schema=model_config.get('output_schema', {}),
+                memory_usage=loader.get_memory_usage(model),
+                last_used=self.cache.get_last_access_time(model_id)
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to get model info for {model_id}: {str(e)}")
+            return None

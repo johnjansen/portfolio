@@ -4,8 +4,8 @@ from catwalk.api.dependencies import ModelManagerDep, MetricsCollectorDep
 import time
 import logging
 
-from typing import Dict, Any, Optional, Union, List
-from pydantic import BaseModel, Field, validator, constr
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +129,11 @@ async def predict(
             )
 
         # Perform inference
-        outputs = await model_manager.predict(model_id, request.inputs, request.parameters)
+        outputs = await model_manager.predict(
+            model_id,
+            request.inputs,
+            request.parameters or {}
+        )
 
         logger.info(f"Inference completed for model {model_id}")
         logger.debug(f"Outputs: {outputs}")
@@ -164,8 +168,6 @@ async def get_model_metadata(
         if model_info is None:
             raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
 
-        model_metrics = metrics.model_metrics.get(model_id, {})
-
         return ModelMetadata(
             model_id=model_id,
             version=model_info.version,
@@ -174,12 +176,13 @@ async def get_model_metadata(
             output_schema=model_info.output_schema,
             memory_usage=f"{model_info.memory_usage / (1024*1024):.2f}MB",
             last_used=model_info.last_used.isoformat() if model_info.last_used else "never",
-            total_requests=len(model_metrics.get('inference_times', [])),
-            average_latency=sum(model_metrics.get('inference_times', [0])) / max(len(model_metrics.get('inference_times', [1])), 1)
+            total_requests=metrics.get_request_count(),
+            average_latency=metrics.get_inference_time_avg(model_id)
         )
     except Exception as e:
         logger.error(f"Failed to retrieve metadata for model {model_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/models/status", response_model=SystemStatus)
 async def get_system_status(

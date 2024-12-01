@@ -4,6 +4,7 @@ from typing import Dict, Any
 import time
 import psutil
 
+
 @dataclass
 class ModelMetrics:
     """Track per-model metrics"""
@@ -12,6 +13,7 @@ class ModelMetrics:
     memory_usage: int
     hits: int
     misses: int
+
 
 class MetricsCollector:
     """System-wide metrics collection"""
@@ -33,3 +35,19 @@ class MetricsCollector:
             'cpu_percent': psutil.cpu_percent(),
             'uptime': time.time() - self.start_time
         }
+
+    def get_request_count(self) -> int:
+        """Get total number of requests across all models"""
+        total = 0
+        for metrics in self.model_metrics.values():
+            total += metrics.hits + metrics.misses
+        return total
+
+    def get_inference_time_avg(self, model_id: str) -> float:
+        """Calculate average inference time for a model"""
+        if model_id not in self.model_metrics:
+            return 0.0
+        times = self.model_metrics[model_id].inference_times
+        if not times:
+            return 0.0
+        return sum(times) / len(times)

@@ -1,17 +1,20 @@
 # src/catwalk/api/dependencies.py
-from typing import Annotated
-from fastapi import Depends
+from typing import Annotated, Optional
 from catwalk.core.manager import ModelManager
 from catwalk.utils.metrics import MetricsCollector
 import os
 
+from fastapi import Depends
+
 # Singleton instances
-_model_manager: ModelManager = None
-_metrics_collector: MetricsCollector = None
+_model_manager: Optional[ModelManager] = None
+_metrics_collector: Optional[MetricsCollector] = None
+
 
 def get_config_path() -> str:
     """Get configuration path from environment or default"""
     return os.getenv('CATWALK_CONFIG_PATH', 'config/development/config.yaml')
+
 
 def get_model_manager() -> ModelManager:
     """Dependency provider for ModelManager"""
@@ -20,12 +23,14 @@ def get_model_manager() -> ModelManager:
         _model_manager = ModelManager(get_config_path())
     return _model_manager
 
+
 def get_metrics_collector() -> MetricsCollector:
     """Dependency provider for MetricsCollector"""
     global _metrics_collector
     if _metrics_collector is None:
         _metrics_collector = MetricsCollector()
     return _metrics_collector
+
 
 # Type aliases for dependency injection
 ModelManagerDep = Annotated[ModelManager, Depends(get_model_manager)]

@@ -6,6 +6,7 @@ from .base import ModelLoader
 
 logger = logging.getLogger(__name__)
 
+
 class PyTorchLoader(ModelLoader):
     def __init__(self):
         self.torch = torch

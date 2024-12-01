@@ -1,4 +1,5 @@
 # src/catwalk/core/cache.py
+from datetime import datetime
 from typing import Generic, TypeVar, Dict, Optional, Any
 from collections import OrderedDict
 import time
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
+
 @dataclass
 class CacheEntry(Generic[T]):
     """Represents a single cache entry with metadata"""
@@ -16,6 +18,7 @@ class CacheEntry(Generic[T]):
     size_bytes: int
     last_accessed: float
     access_count: int
+
 
 class LRUCache(Generic[T]):
     """Memory-aware LRU cache implementation"""
@@ -115,3 +118,18 @@ class LRUCache(Generic[T]):
             "max_size_bytes": self._max_size_bytes,
             "utilization": self._current_size_bytes / self._max_size_bytes,
         }
+
+    def get_last_access_time(self, key: str) -> Optional[datetime]:
+        """Get the last access time for a cached item.
+
+        Args:
+            key (str): The cache key to look up
+
+        Returns:
+            Optional[datetime]: The last access timestamp as datetime,
+                              or None if key not found
+        """
+        if key not in self._cache:
+            return None
+
+        return datetime.fromtimestamp(self._cache[key].last_accessed)
