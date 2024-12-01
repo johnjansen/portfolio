@@ -1,7 +1,7 @@
-# src/catwalk/main.py
+# src/portfolio/main.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from catwalk.api.v1 import router as api_router
+from portfolio.api.v1 import router as api_router
 import logging
 
 # Configure logging
@@ -14,13 +14,13 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events"""
     # Startup
-    logging.info("Catwalk starting up...")
+    logging.info("Portfolio starting up...")
     yield
     # Shutdown
-    logging.info("Catwalk shutting down...")
+    logging.info("Portfolio shutting down...")
 
 app = FastAPI(
-    title="Catwalk",
+    title="Portfolio",
     description="LRU-based ML Model Server",
     version="0.1.0",
     lifespan=lifespan

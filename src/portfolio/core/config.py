@@ -1,4 +1,4 @@
-# src/catwalk/utils/config.py
+# src/portfolio/utils/config.py
 import yaml
 from typing import Dict
 from pydantic import BaseModel

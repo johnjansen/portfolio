@@ -1,4 +1,4 @@
-# src/catwalk/models/loader/tensorflow.py
+# src/portfolio/models/loader/tensorflow.py
 from typing import Any, Dict
 import logging
 from .base import ModelLoader

@@ -1,4 +1,4 @@
-# src/catwalk/storage/filesystem.py
+# src/portfolio/storage/filesystem.py
 from pathlib import Path
 from typing import AsyncIterator, BinaryIO
 import aiofiles

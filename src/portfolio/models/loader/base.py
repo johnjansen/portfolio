@@ -1,4 +1,4 @@
-# src/catwalk/models/loader/base.py
+# src/portfolio/models/loader/base.py
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 import logging

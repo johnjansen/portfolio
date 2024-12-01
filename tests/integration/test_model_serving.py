@@ -1,7 +1,7 @@
 # tests/integration/test_model_serving.py
 import pytest
 from fastapi.testclient import TestClient
-from catwalk.main import app
+from portfolio.main import app
 import logging
 
 logger = logging.getLogger(__name__)

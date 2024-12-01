@@ -1,7 +1,7 @@
 # tests/unit/test_system_status.py
 import pytest
 from fastapi.testclient import TestClient
-from src.catwalk.main import app
+from src.portfolio.main import app
 
 @pytest.fixture
 def client():

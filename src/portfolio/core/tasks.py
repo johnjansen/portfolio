@@ -1,4 +1,4 @@
-# src/catwalk/core/tasks.py
+# src/portfolio/core/tasks.py
 import asyncio
 
 

@@ -1,4 +1,4 @@
-# src/catwalk/api/v1/docs.py
+# src/portfolio/api/v1/docs.py
 """
 API Documentation using OpenAPI specs
 """

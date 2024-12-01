@@ -1,4 +1,4 @@
-# Catwalk
+# Portfolio
 
 LRU-based Machine Learning Model Server
 
@@ -11,7 +11,7 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-python -m catwalk.main
+python -m portfolio.main
 ```
 
 ## Development

@@ -1,4 +1,4 @@
-# src/catwalk/storage/base.py
+# src/portfolio/storage/base.py
 from abc import ABC, abstractmethod
 from typing import BinaryIO, AsyncIterator
 

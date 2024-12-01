@@ -1,7 +1,7 @@
-# Catwalk: LRU-based Machine Learning Model Server
+# Portfolio: LRU-based Machine Learning Model Server
 
 ## Overview
-Catwalk is a FastAPI-based model server designed to efficiently serve machine learning models while intelligently managing memory usage through an LRU (Least Recently Used) caching mechanism.
+Portfolio is a FastAPI-based model server designed to efficiently serve machine learning models while intelligently managing memory usage through an LRU (Least Recently Used) caching mechanism.
 
 ## Goals
 - Provide a fast, reliable API for serving ML models

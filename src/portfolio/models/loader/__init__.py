@@ -1,4 +1,4 @@
-# src/catwalk/models/loader/__init__.py
+# src/portfolio/models/loader/__init__.py
 from .base import ModelLoader
 from .pytorch import PyTorchLoader
 from .tensorflow import TensorFlowLoader

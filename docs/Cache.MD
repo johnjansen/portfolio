@@ -1,7 +1,7 @@
-# Understanding Catwalk's LRU Cache System
+# Understanding Portfolio's LRU Cache System
 
 ## Overview
-Catwalk uses a Least Recently Used (LRU) cache to efficiently manage machine learning models in memory. This document explains how the cache works and what to expect when deploying models.
+Portfolio uses a Least Recently Used (LRU) cache to efficiently manage machine learning models in memory. This document explains how the cache works and what to expect when deploying models.
 
 ## Cache Behavior
 

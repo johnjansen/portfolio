@@ -1,4 +1,4 @@
-# catwalk/src/catwalk/api/v1/__init__.py
+# portfolio/src/portfolio/api/v1/__init__.py
 
 from fastapi import APIRouter
 from .routes import router as model_router

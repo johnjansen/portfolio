@@ -1,6 +1,6 @@
-# src/catwalk/api/v1/routes.py
+# src/portfolio/api/v1/routes.py
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from catwalk.api.dependencies import ModelManagerDep, MetricsCollectorDep
+from portfolio.api.dependencies import ModelManagerDep, MetricsCollectorDep
 import time
 import logging
 from datetime import datetime
@@ -12,12 +12,12 @@ from pydantic import Field
 
 
 # request and response schemas
-from catwalk.models.schemas.model_summary import ModelSummary
-from catwalk.models.schemas.models_list import ModelsList
-from catwalk.models.schemas.prediction_response import PredictionResponse
-from catwalk.models.schemas.model_metadata import ModelMetadata
-from catwalk.models.schemas.system_status import SystemStatus
-from catwalk.models.schemas.prediction_request import PredictionRequest
+from portfolio.models.schemas.model_summary import ModelSummary
+from portfolio.models.schemas.models_list import ModelsList
+from portfolio.models.schemas.prediction_response import PredictionResponse
+from portfolio.models.schemas.model_metadata import ModelMetadata
+from portfolio.models.schemas.system_status import SystemStatus
+from portfolio.models.schemas.prediction_request import PredictionRequest
 
 
 logger = logging.getLogger(__name__)

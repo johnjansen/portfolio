@@ -1,4 +1,4 @@
-# src/catwalk/models/registry.py
+# src/portfolio/models/registry.py
 from typing import Dict, List
 from datetime import datetime
 import logging

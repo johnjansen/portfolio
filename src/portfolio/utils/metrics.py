@@ -1,4 +1,4 @@
-# src/catwalk/utils/metrics.py
+# src/portfolio/utils/metrics.py
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
 import time

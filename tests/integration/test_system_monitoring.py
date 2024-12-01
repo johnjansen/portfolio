@@ -2,8 +2,8 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from catwalk.api.v1 import router as api_router
-from catwalk.api.dependencies import reset_model_manager
+from portfolio.api.v1 import router as api_router
+from portfolio.api.dependencies import reset_model_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ def app():
     reset_model_manager()
 
     # Create new application
-    app = FastAPI(title="Catwalk Test")
+    app = FastAPI(title="Portfolio Test")
     app.include_router(api_router, prefix="/v1")
 
     return app

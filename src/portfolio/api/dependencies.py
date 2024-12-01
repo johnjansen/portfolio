@@ -1,7 +1,7 @@
-# src/catwalk/api/dependencies.py
+# src/portfolio/api/dependencies.py
 from typing import Annotated, Optional
-from catwalk.core.manager import ModelManager
-from catwalk.utils.metrics import MetricsCollector
+from portfolio.core.manager import ModelManager
+from portfolio.utils.metrics import MetricsCollector
 import os
 import logging
 
@@ -17,7 +17,7 @@ _metrics_collector: Optional[MetricsCollector] = None
 
 def get_config_path() -> str:
     """Get configuration path from environment or default"""
-    return os.getenv('CATWALK_CONFIG_PATH', 'config/development/config.yaml')
+    return os.getenv('PORTFOLIO_CONFIG_PATH', 'config/development/config.yaml')
 
 
 def reset_model_manager():
@@ -35,7 +35,7 @@ def get_model_manager() -> ModelManager:
     """Dependency provider for ModelManager"""
     global _model_manager
     if _model_manager is None:
-        config_path = os.getenv('CATWALK_CONFIG_PATH', 'config/development/config.yaml')
+        config_path = os.getenv('PORTFOLIO_CONFIG_PATH', 'config/development/config.yaml')
         logger.info(f"Creating new ModelManager with config: {config_path}")
         _model_manager = ModelManager(config_path)
     return _model_manager

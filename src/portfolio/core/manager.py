@@ -1,4 +1,4 @@
-# src/catwalk/core/manager.py
+# src/portfolio/core/manager.py
 from typing import Optional, Dict, Any, NamedTuple, Set
 from datetime import datetime
 import os

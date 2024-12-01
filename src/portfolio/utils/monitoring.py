@@ -1,4 +1,4 @@
-# src/catwalk/utils/monitoring.py
+# src/portfolio/utils/monitoring.py
 from prometheus_client import Counter, Histogram, Gauge
 import time
 

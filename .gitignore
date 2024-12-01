@@ -27,3 +27,10 @@ ENV/
 *.swp
 .DS_Store
 test_results.txt
+
+# CI/CD
+.coverage
+coverage.xml
+test-results.xml
+.pytest_cache/
+.mypy_cache/

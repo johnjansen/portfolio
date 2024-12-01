@@ -1,7 +1,7 @@
-# catwalk/tests/unit/test_cache.py
+# portfolio/tests/unit/test_cache.py
 import time
 import pytest
-from src.catwalk.core.cache import LRUCache, CacheEntry  # Updated import path
+from src.portfolio.core.cache import LRUCache, CacheEntry  # Updated import path
 
 class TestLRUCache:
     """Test suite for the LRU Cache implementation"""

@@ -1,46 +1,46 @@
 #!/bin/bash
 
-# setup_catwalk.sh
-# Creates the initial directory structure and stub files for the Catwalk project
+# setup_portfolio.sh
+# Creates the initial directory structure and stub files for the Portfolio project
 
 # Colors for output
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-echo "🚀 Setting up Catwalk project structure..."
+echo "🚀 Setting up Portfolio project structure..."
 
 # Create main project directory
-mkdir -p catwalk/{src,tests,config,docs,scripts}
+mkdir -p portfolio/{src,tests,config,docs,scripts}
 
 # Create source code structure
-mkdir -p catwalk/src/catwalk/{api,core,models,storage,utils}
-mkdir -p catwalk/src/catwalk/api/{v1,middleware}
-mkdir -p catwalk/src/catwalk/core/{cache,manager}
+mkdir -p portfolio/src/portfolio/{api,core,models,storage,utils}
+mkdir -p portfolio/src/portfolio/api/{v1,middleware}
+mkdir -p portfolio/src/portfolio/core/{cache,manager}
 
 # Create test directory structure
-mkdir -p catwalk/tests/{unit,integration,performance}
+mkdir -p portfolio/tests/{unit,integration,performance}
 
 # Create config directory
-mkdir -p catwalk/config/{development,production}
+mkdir -p portfolio/config/{development,production}
 
 # Create basic Python files
-touch catwalk/src/catwalk/__init__.py
-touch catwalk/src/catwalk/api/__init__.py
-touch catwalk/src/catwalk/core/__init__.py
-touch catwalk/src/catwalk/models/__init__.py
-touch catwalk/src/catwalk/storage/__init__.py
-touch catwalk/src/catwalk/utils/__init__.py
+touch portfolio/src/portfolio/__init__.py
+touch portfolio/src/portfolio/api/__init__.py
+touch portfolio/src/portfolio/core/__init__.py
+touch portfolio/src/portfolio/models/__init__.py
+touch portfolio/src/portfolio/storage/__init__.py
+touch portfolio/src/portfolio/utils/__init__.py
 
 # Create main application files
-cat > catwalk/src/catwalk/main.py << EOF
+cat > portfolio/src/portfolio/main.py << EOF
 """
-Catwalk - LRU-based Machine Learning Model Server
+Portfolio - LRU-based Machine Learning Model Server
 Main application entry point
 """
 from fastapi import FastAPI
-from catwalk.api.v1 import router as api_router
+from portfolio.api.v1 import router as api_router
 
-app = FastAPI(title="Catwalk", description="LRU-based ML Model Server")
+app = FastAPI(title="Portfolio", description="LRU-based ML Model Server")
 
 app.include_router(api_router, prefix="/v1")
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 EOF
 
 # Create basic configuration files
-cat > catwalk/config/development/config.yaml << EOF
+cat > portfolio/config/development/config.yaml << EOF
 models:
   model1:
     path: /models/model1
@@ -65,7 +65,7 @@ cache:
 EOF
 
 # Create requirements file
-cat > catwalk/requirements.txt << EOF
+cat > portfolio/requirements.txt << EOF
 fastapi>=0.68.0
 uvicorn>=0.15.0
 pyyaml>=5.4.1
@@ -78,8 +78,8 @@ httpx>=0.19.0
 EOF
 
 # Create README
-cat > catwalk/README.md << EOF
-# Catwalk
+cat > portfolio/README.md << EOF
+# Portfolio
 
 LRU-based Machine Learning Model Server
 
@@ -92,7 +92,7 @@ pip install -r requirements.txt
 ## Usage
 
 \`\`\`bash
-python -m catwalk.main
+python -m portfolio.main
 \`\`\`
 
 ## Development
@@ -103,7 +103,7 @@ pytest tests/
 EOF
 
 # Create basic gitignore
-cat > catwalk/.gitignore << EOF
+cat > portfolio/.gitignore << EOF
 __pycache__/
 *.py[cod]
 *$py.class
@@ -135,12 +135,12 @@ ENV/
 EOF
 
 # Make the script executable
-chmod +x catwalk/scripts/*.sh
+chmod +x portfolio/scripts/*.sh
 
-echo -e "${GREEN}✅ Catwalk project structure created successfully!${NC}"
+echo -e "${GREEN}✅ Portfolio project structure created successfully!${NC}"
 echo -e "Next steps:"
-echo -e "1. cd catwalk"
+echo -e "1. cd portfolio"
 echo -e "2. python -m venv venv"
 echo -e "3. source venv/bin/activate"
 echo -e "4. pip install -r requirements.txt"
-echo -e "5. python src/catwalk/main.py"
+echo -e "5. python src/portfolio/main.py"
