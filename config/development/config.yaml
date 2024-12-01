@@ -1,0 +1,12 @@
+# config/development/config.yaml
+models:
+  simple_model:
+    path: "models/simple_model.pt" # This should be relative to your project root
+    type: "pytorch"
+    memory_estimate: "1MB"
+    preload: true
+
+cache:
+  max_memory: "1GB"
+  soft_limit: "800MB"
+  ttl: 3600

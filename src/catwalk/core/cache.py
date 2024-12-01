@@ -1,5 +1,5 @@
-# src/core/cache.py
-from typing import Generic, TypeVar, Dict, Optional
+# src/catwalk/core/cache.py
+from typing import Generic, TypeVar, Dict, Optional, Any
 from collections import OrderedDict
 import time
 from dataclasses import dataclass
@@ -18,28 +18,10 @@ class CacheEntry(Generic[T]):
     access_count: int
 
 class LRUCache(Generic[T]):
-    """
-    Memory-aware LRU cache implementation for model management.
+    """Memory-aware LRU cache implementation"""
 
-    Features:
-    - Tracks memory usage of cached items
-    - Maintains access patterns and timestamps
-    - Supports soft and hard memory limits
-    - Provides eviction strategies based on memory pressure
-    """
-
-    def __init__(
-        self,
-        max_size_bytes: int,
-        soft_limit_bytes: Optional[int] = None
-    ):
-        """
-        Initialize the LRU cache.
-
-        Args:
-            max_size_bytes: Hard limit for cache size in bytes
-            soft_limit_bytes: Optional soft limit triggering background cleanup
-        """
+    def __init__(self, max_size_bytes: int, soft_limit_bytes: Optional[int] = None):
+        """Initialize the LRU cache"""
         self._cache: OrderedDict[str, CacheEntry[T]] = OrderedDict()
         self._max_size_bytes = max_size_bytes
         self._soft_limit_bytes = soft_limit_bytes or (max_size_bytes * 0.85)
@@ -51,15 +33,7 @@ class LRUCache(Generic[T]):
         )
 
     def get(self, key: str) -> Optional[T]:
-        """
-        Retrieve an item from the cache, updating its access patterns.
-
-        Args:
-            key: Cache key to lookup
-
-        Returns:
-            The cached value if found, None otherwise
-        """
+        """Get an item from the cache"""
         if key not in self._cache:
             return None
 
@@ -73,14 +47,7 @@ class LRUCache(Generic[T]):
         return entry.value
 
     def put(self, key: str, value: T, size_bytes: int) -> None:
-        """
-        Add or update an item in the cache.
-
-        Args:
-            key: Cache key
-            value: Value to cache
-            size_bytes: Memory size of the value in bytes
-        """
+        """Put an item in the cache"""
         if key in self._cache:
             self._current_size_bytes -= self._cache[key].size_bytes
 
@@ -106,25 +73,23 @@ class LRUCache(Generic[T]):
         )
 
     def _evict_lru(self) -> bool:
-        """
-        Evict the least recently used item from the cache.
-
-        Returns:
-            True if an item was evicted, False if cache is empty
-        """
+        """Evict the least recently used item"""
         if not self._cache:
             return False
 
-        # Get the least recently used item
         key, entry = next(iter(self._cache.items()))
         self._cache.pop(key)
         self._current_size_bytes -= entry.size_bytes
 
-        logger.info(
-            f"Evicted key {key} from cache "
-            f"(freed: {entry.size_bytes:,} bytes)"
-        )
+        logger.info(f"Evicted key {key} from cache (freed: {entry.size_bytes:,} bytes)")
         return True
+
+    def remove(self, key: str) -> None:
+        """Remove an item from the cache"""
+        if key in self._cache:
+            self._current_size_bytes -= self._cache[key].size_bytes
+            del self._cache[key]
+            logger.debug(f"Removed key {key} from cache")
 
     def clear(self) -> None:
         """Clear all items from the cache"""
@@ -142,13 +107,8 @@ class LRUCache(Generic[T]):
         """Number of items in cache"""
         return len(self._cache)
 
-    def stats(self) -> Dict[str, any]:
-        """
-        Get current cache statistics
-
-        Returns:
-            Dictionary of cache metrics
-        """
+    def stats(self) -> Dict[str, Any]:
+        """Get current cache statistics"""
         return {
             "item_count": len(self._cache),
             "current_size_bytes": self._current_size_bytes,

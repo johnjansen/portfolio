@@ -1,11 +1,12 @@
-# catwalk/src/catwalk/api/v1/routes.py
-
-from typing import Dict, Any, Optional
+# src/catwalk/api/v1/routes.py
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field
+from catwalk.api.dependencies import ModelManagerDep, MetricsCollectorDep
+import time
 import logging
 
-# Configure logging
+from typing import Dict, Any, Optional, Union, List
+from pydantic import BaseModel, Field, validator, constr
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -108,83 +109,94 @@ async def list_models() -> ModelsList:
 async def predict(
     model_id: str,
     request: PredictionRequest,
+    model_manager: ModelManagerDep,
+    metrics: MetricsCollectorDep,
     background_tasks: BackgroundTasks
 ) -> PredictionResponse:
-    """
-    Perform model inference on the provided input data.
-
-    Args:
-        model_id: Unique identifier for the model
-        request: Input data and parameters for inference
-        background_tasks: FastAPI background tasks handler
-
-    Returns:
-        PredictionResponse containing model outputs and metadata
-
-    Raises:
-        HTTPException: If model not found or inference fails
-    """
+    """Perform model inference on the provided input data."""
     try:
-        # TODO: Implement model manager interaction
-        # TODO: Implement actual prediction logic
+        logger.info(f"Received prediction request for model: {model_id}")
+        logger.debug(f"Input data: {request.inputs}")
+
+        start_time = time.time()
+
+        # Get model from manager (handles loading if needed)
+        model = await model_manager.get_model(model_id)
+        if model is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model {model_id} not found or failed to load"
+            )
+
+        # Perform inference
+        outputs = await model_manager.predict(model_id, request.inputs, request.parameters)
+
+        logger.info(f"Inference completed for model {model_id}")
+        logger.debug(f"Outputs: {outputs}")
+
+        # Record metrics
+        duration = time.time() - start_time
+        background_tasks.add_task(metrics.record_inference, model_id, duration)
+
         return PredictionResponse(
             model_id=model_id,
-            outputs={"placeholder": "Prediction not yet implemented"},
-            metadata={"status": "stub"}
+            outputs=outputs,
+            metadata={
+                "duration_ms": round(duration * 1000, 2),
+                "model_version": getattr(model, 'version', 'unknown')
+            }
         )
+
     except Exception as e:
         logger.error(f"Prediction failed for model {model_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Prediction failed")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/models/{model_id}/metadata", response_model=ModelMetadata)
-async def get_model_metadata(model_id: str) -> ModelMetadata:
-    """
-    Retrieve metadata for a specific model.
-
-    Args:
-        model_id: Unique identifier for the model
-
-    Returns:
-        ModelMetadata containing model information and statistics
-
-    Raises:
-        HTTPException: If model not found
-    """
+async def get_model_metadata(
+    model_id: str,
+    model_manager: ModelManagerDep,
+    metrics: MetricsCollectorDep
+) -> ModelMetadata:
+    """Retrieve metadata for a specific model."""
     try:
-        # TODO: Implement model metadata retrieval
+        model_info = await model_manager.get_model_info(model_id)
+        if model_info is None:
+            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+
+        model_metrics = metrics.model_metrics.get(model_id, {})
+
         return ModelMetadata(
             model_id=model_id,
-            version="0.1.0",
-            format="pytorch",
-            input_schema={},
-            output_schema={},
-            memory_usage="0MB",
-            last_used="never",
-            total_requests=0,
-            average_latency=0.0
+            version=model_info.version,
+            format=model_info.format,
+            input_schema=model_info.input_schema,
+            output_schema=model_info.output_schema,
+            memory_usage=f"{model_info.memory_usage / (1024*1024):.2f}MB",
+            last_used=model_info.last_used.isoformat() if model_info.last_used else "never",
+            total_requests=len(model_metrics.get('inference_times', [])),
+            average_latency=sum(model_metrics.get('inference_times', [0])) / max(len(model_metrics.get('inference_times', [1])), 1)
         )
     except Exception as e:
         logger.error(f"Failed to retrieve metadata for model {model_id}: {str(e)}")
-        raise HTTPException(status_code=404, detail="Model not found")
-
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/models/status", response_model=SystemStatus)
-async def get_system_status() -> SystemStatus:
-    """
-    Get system-wide status information.
-
-    Returns:
-        SystemStatus containing current system metrics
-    """
+async def get_system_status(
+    model_manager: ModelManagerDep,
+    metrics: MetricsCollectorDep
+) -> SystemStatus:
+    """Get system-wide status information."""
     try:
-        # TODO: Implement system status collection
+        system_metrics = metrics.get_system_metrics()
+        cache_stats = model_manager.cache.stats()
+
         return SystemStatus(
-            active_models=0,
-            total_memory_usage="0MB",
-            cache_utilization=0.0,
+            active_models=len(model_manager.models),
+            total_memory_usage=f"{system_metrics['memory_usage'] / (1024*1024):.2f}MB",
+            cache_utilization=cache_stats['utilization'],
             healthy=True,
-            uptime="0:00:00"
+            uptime=f"{system_metrics['uptime']:.1f}s"
         )
     except Exception as e:
         logger.error(f"Failed to retrieve system status: {str(e)}")
