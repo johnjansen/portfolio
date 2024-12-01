@@ -1,135 +1,125 @@
 # src/catwalk/core/cache.py
-from datetime import datetime
-from typing import Generic, TypeVar, Dict, Optional, Any
+from typing import Optional, Dict, Any, NamedTuple
 from collections import OrderedDict
 import time
-from dataclasses import dataclass
 import logging
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
-
-
-@dataclass
-class CacheEntry(Generic[T]):
-    """Represents a single cache entry with metadata"""
-    value: T
+class CacheEntry(NamedTuple):
+    value: Any
     size_bytes: int
     last_accessed: float
-    access_count: int
 
-
-class LRUCache(Generic[T]):
-    """Memory-aware LRU cache implementation"""
-
+class LRUCache:
     def __init__(self, max_size_bytes: int, soft_limit_bytes: Optional[int] = None):
-        """Initialize the LRU cache"""
-        self._cache: OrderedDict[str, CacheEntry[T]] = OrderedDict()
+        self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
         self._max_size_bytes = max_size_bytes
         self._soft_limit_bytes = soft_limit_bytes or (max_size_bytes * 0.85)
         self._current_size_bytes = 0
+        print(f"Cache initialized: max={max_size_bytes}, soft={self._soft_limit_bytes}")
 
-        logger.info(
-            f"Initialized LRU Cache with max size: {max_size_bytes:,} bytes "
-            f"(soft limit: {self._soft_limit_bytes:,} bytes)"
-        )
-
-    def get(self, key: str) -> Optional[T]:
-        """Get an item from the cache"""
+    def get(self, key: str) -> Optional[Any]:
         if key not in self._cache:
             return None
 
-        # Update access patterns
+        # Move to end (most recently used)
         entry = self._cache.pop(key)
-        entry.last_accessed = time.time()
-        entry.access_count += 1
-        self._cache[key] = entry
-
-        logger.debug(f"Cache hit for key: {key}")
+        self._cache[key] = CacheEntry(
+            entry.value,
+            entry.size_bytes,
+            time.time()
+        )
         return entry.value
 
-    def put(self, key: str, value: T, size_bytes: int) -> None:
-        """Put an item in the cache"""
+    @property
+    def available_space(self):
+        return self._max_size_bytes - self._current_size_bytes
+
+    def put(self, key: str, value: Any, size_bytes: int) -> None:
+        print(f"\nPutting {key} (size={size_bytes})")
+        print(f"Before put: current_size={self._current_size_bytes}, max={self._max_size_bytes}")
+
+        if size_bytes > self._max_size_bytes:
+            raise ValueError(f"Item size {size_bytes} exceeds cache maximum {self._max_size_bytes}")
+
+        # If key exists, remove it first
         if key in self._cache:
-            self._current_size_bytes -= self._cache[key].size_bytes
+            old_entry = self._cache.pop(key)
+            self._current_size_bytes -= old_entry.size_bytes
+            print(f"Removed existing entry for {key}, freed {old_entry.size_bytes}")
 
-        # Check if we need to evict items
-        while (self._current_size_bytes + size_bytes) > self._max_size_bytes:
-            if not self._evict_lru():
-                raise ValueError("Cannot add item: cache full and nothing to evict")
+        # Calculate required space
+        required_space = size_bytes
 
-        entry = CacheEntry(
-            value=value,
-            size_bytes=size_bytes,
-            last_accessed=time.time(),
-            access_count=1
-        )
+        # If we need more space, evict items
+        if required_space > self.available_space:
+            print(f"Need to free {required_space - self.available_space} bytes")
+            self._make_space(required_space, key)
 
-        self._cache[key] = entry
+        # Add new entry
+        self._cache[key] = CacheEntry(value, size_bytes, time.time())
         self._current_size_bytes += size_bytes
 
-        logger.info(
-            f"Added key {key} to cache "
-            f"(size: {size_bytes:,} bytes, "
-            f"total: {self._current_size_bytes:,} bytes)"
-        )
+        print(f"After put: current_size={self._current_size_bytes}, max={self._max_size_bytes}")
+        self._print_cache_state()
 
-    def _evict_lru(self) -> bool:
-        """Evict the least recently used item"""
-        if not self._cache:
-            return False
+    def _make_space(self, needed_bytes: int, exclude_key: Optional[str] = None) -> None:
+        """Make space for needed_bytes by evicting least recently used items first"""
+        to_free = needed_bytes - self.available_space
 
-        key, entry = next(iter(self._cache.items()))
-        self._cache.pop(key)
-        self._current_size_bytes -= entry.size_bytes
+        if to_free <= 0:
+            return  # No need to free up space
 
-        logger.info(f"Evicted key {key} from cache (freed: {entry.size_bytes:,} bytes)")
-        return True
+        # Get items sorted by last access time (sorted() returns ascending order - oldest first)
+        items = sorted(self._cache.items(), key=lambda x: x[1].last_accessed)
+
+        # Track how much space we've freed
+        freed_space = 0
+        to_remove = []
+
+        # Collect items to remove until we have enough space
+        for key, entry in items:
+            if key == exclude_key:
+                continue
+            to_remove.append(key)
+            freed_space += entry.size_bytes
+            if freed_space >= to_free:
+                break
+
+        # Remove the items
+        for key in to_remove:
+            entry = self._cache.pop(key)
+            self._current_size_bytes -= entry.size_bytes
+            print(f"Evicted {key}, freed {entry.size_bytes} bytes")
 
     def remove(self, key: str) -> None:
-        """Remove an item from the cache"""
         if key in self._cache:
-            self._current_size_bytes -= self._cache[key].size_bytes
-            del self._cache[key]
-            logger.debug(f"Removed key {key} from cache")
+            entry = self._cache.pop(key)
+            self._current_size_bytes -= entry.size_bytes
 
     def clear(self) -> None:
-        """Clear all items from the cache"""
         self._cache.clear()
         self._current_size_bytes = 0
-        logger.info("Cache cleared")
 
-    @property
-    def size_bytes(self) -> int:
-        """Current size of cached items in bytes"""
-        return self._current_size_bytes
-
-    @property
-    def count(self) -> int:
-        """Number of items in cache"""
-        return len(self._cache)
+    def get_last_access_time(self, key: str) -> Optional[float]:
+        if key in self._cache:
+            return self._cache[key].last_accessed
+        return None
 
     def stats(self) -> Dict[str, Any]:
-        """Get current cache statistics"""
         return {
             "item_count": len(self._cache),
             "current_size_bytes": self._current_size_bytes,
             "max_size_bytes": self._max_size_bytes,
-            "utilization": self._current_size_bytes / self._max_size_bytes,
+            "utilization": self._current_size_bytes / self._max_size_bytes
         }
 
-    def get_last_access_time(self, key: str) -> Optional[datetime]:
-        """Get the last access time for a cached item.
+    @property
+    def count(self) -> int:
+        return len(self._cache)
 
-        Args:
-            key (str): The cache key to look up
-
-        Returns:
-            Optional[datetime]: The last access timestamp as datetime,
-                              or None if key not found
-        """
-        if key not in self._cache:
-            return None
-
-        return datetime.fromtimestamp(self._cache[key].last_accessed)
+    def _print_cache_state(self) -> None:
+        print("\nCache state:")
+        for key, entry in self._cache.items():
+            print(f"  {key}: size={entry.size_bytes} => {entry}")

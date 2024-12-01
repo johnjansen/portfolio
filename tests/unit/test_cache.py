@@ -1,5 +1,5 @@
 # catwalk/tests/unit/test_cache.py
-
+import time
 import pytest
 from src.catwalk.core.cache import LRUCache, CacheEntry  # Updated import path
 
@@ -49,22 +49,124 @@ class TestLRUCache:
         assert cache._current_size_bytes == 150  # Updated to match implementation
         assert cache.count == 1
 
-    def test_lru_eviction(self, cache):
-        """Test that least recently used items are evicted when cache is full"""
+    def test_basic_eviction(self, cache):
+        """Test that adding items beyond capacity triggers eviction"""
+        # Fill cache to capacity
+        cache.put("model1", "value1", size_bytes=400)
+        cache.put("model2", "value2", size_bytes=400)
+
+        # Verify initial state
+        assert cache.get("model1") == "value1"
+        assert cache.get("model2") == "value2"
+        assert cache._current_size_bytes == 800
+
+        # Add new model that pushes us over capacity
+        cache.put("model3", "value3", size_bytes=400)
+
+        # Verify least recently used (model1) was evicted
+        assert cache.get("model1") is None
+        assert cache.get("model2") == "value2"
+        assert cache.get("model3") == "value3"
+        assert cache._current_size_bytes == 800
+
+    def test_access_pattern_affects_eviction(self, cache):
+        """Test that accessing items affects eviction order"""
+        # Add initial items
+        cache.put("model1", "value1", size_bytes=300)
+        cache.put("model2", "value2", size_bytes=300)
+        cache.put("model3", "value3", size_bytes=300)
+
+        # Access model1 to make it most recently used
+        cache.get("model1")
+
+        # Add new item that requires eviction
+        cache.put("model4", "value4", size_bytes=300)
+
+        # model2 should be evicted as it's least recently used
+        assert cache.get("model1") == "value1"  # Should still be present
+        assert cache.get("model2") is None      # Should be evicted
+        assert cache.get("model3") == "value3"  # Should still be present
+        assert cache.get("model4") == "value4"  # Should be present
+
+    def test_large_item_eviction(self, cache):
+        """Test handling of items larger than soft limit"""
+        # Fill cache with small items
+        cache.put("small1", "value1", size_bytes=200)
+        cache.put("small2", "value2", size_bytes=200)
+        cache.put("small3", "value3", size_bytes=200)
+
+        # Add item larger than soft limit but within max size
+        cache.put("large", "large_value", size_bytes=900)
+
+        # Verify all small items were evicted
+        assert cache.get("small1") is None
+        assert cache.get("small2") is None
+        assert cache.get("small3") is None
+        assert cache.get("large") == "large_value"
+        assert cache._current_size_bytes == 900
+
+    def test_multiple_evictions(self, cache):
+        """Test multiple items are evicted if needed"""
+        # Add multiple small items
+        for i in range(5):
+            cache.put(f"model{i}", f"value{i}", size_bytes=200)
+            time.sleep(0.001)  # Ensure distinct access times
+
+        print("A")
+        cache._print_cache_state()
+        print("B")
+
+        # Add large item requiring multiple evictions
+        cache.put("large", "large_value", size_bytes=700)
+        print("C")
+
+        cache._print_cache_state()
+        print("D")
+
+        # Verify oldest items were evicted and newest remain
+        assert cache.get("model0") is None
+        assert cache.get("model1") is None
+        assert cache.get("model2") is None
+        assert cache.get("model3") is None
+        assert cache.get("model4") == "value4"
+        assert cache.get("large") == "large_value"
+        assert cache._current_size_bytes <= 1000
+
+    def test_eviction_with_updates(self, cache):
+        """Test eviction behavior when updating existing items"""
         # Fill cache
-        cache.put("key1", "value1", size_bytes=400)
-        cache.put("key2", "value2", size_bytes=400)
+        cache.put("model1", "value1", size_bytes=400)
+        cache.put("model2", "value2", size_bytes=400)
 
-        # This should trigger eviction of key1
-        cache.put("key3", "value3", size_bytes=400)
+        # Update existing item with larger size
+        cache.put("model1", "new_value", size_bytes=800)
 
-        assert cache.get("key1") is None  # Should be evicted
-        assert cache.get("key2") == "value2"
-        assert cache.get("key3") == "value3"
-        assert cache._current_size_bytes == 800  # Updated to match implementation
-        assert cache.count == 2
+        # Verify model2 was evicted to make space
+        assert cache.get("model1") == "new_value"
+        assert cache.get("model2") is None
+        assert cache._current_size_bytes == 800
 
-    # ... rest of the tests remain the same ...
+    def test_soft_limit_behavior(self, cache):
+        """Test behavior around soft limit threshold"""
+        # Fill to just below soft limit
+        cache.put("model1", "value1", size_bytes=700)  # Below 800 soft limit
+
+        # Add small item that pushes us over soft limit but under max
+        cache.put("model2", "value2", size_bytes=200)  # Total: 900
+
+        # Verify both items remain since we're under max size
+        assert cache.get("model1") == "value1"
+        assert cache.get("model2") == "value2"
+        assert cache._current_size_bytes == 900
+
+        # Add another item that would push us over max
+        cache.put("model3", "value3", size_bytes=200)
+
+        # Verify oldest item was evicted
+        assert cache.get("model1") is None
+        assert cache.get("model2") == "value2"
+        assert cache.get("model3") == "value3"
+        assert cache._current_size_bytes <= 1000
 
     def test_concurrent_size_tracking(self, cache):
         """Test that size tracking remains accurate through operations"""
